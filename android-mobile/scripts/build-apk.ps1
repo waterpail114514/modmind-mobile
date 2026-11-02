@@ -34,10 +34,15 @@ New-Item -ItemType Directory -Path $stage -Force | Out-Null
 robocopy $gradleRoot $stage /E /XD .gradle build /R:1 /W:1 /NFL /NDL /NJH /NJS | Out-Null
 if ($LASTEXITCODE -gt 7) { throw 'Could not stage Android sources' }
 Push-Location $stage
-try { $tasks=if($Variant -eq 'both'){@('assembleDebug','assembleRelease')}elseif($Variant -eq 'release'){@('assembleRelease')}else{@('assembleDebug')}; & (Join-Path $stage 'gradlew.bat') @tasks --no-daemon --console=plain --max-workers=2; if ($LASTEXITCODE -ne 0) { throw 'Android APK build failed' } }
+try { $tasks=if($Variant -eq 'both'){@('lintDebug','lintRelease','assembleDebug','assembleRelease')}elseif($Variant -eq 'release'){@('lintRelease','assembleRelease')}else{@('lintDebug','assembleDebug')}; & (Join-Path $stage 'gradlew.bat') @tasks --no-daemon --console=plain --max-workers=2; if ($LASTEXITCODE -ne 0) { throw 'Android lint or APK build failed' } }
 finally { Pop-Location }
 $variants=if($Variant -eq 'both'){@('debug','release')}else{@($Variant)}
 foreach($builtVariant in $variants){
+    $reportDirectory = Join-Path $gradleRoot 'app\build\reports'
+    New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null
+    foreach($format in @('xml','html')) {
+        Copy-Item -LiteralPath (Join-Path $stage "app\build\reports\lint-results-$builtVariant.$format") -Destination $reportDirectory -Force
+    }
     $apkDirectory = Join-Path $gradleRoot "app\build\outputs\apk\$builtVariant"
     New-Item -ItemType Directory -Path $apkDirectory -Force | Out-Null
     $apkFile=Join-Path $apkDirectory "app-$builtVariant.apk"

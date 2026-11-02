@@ -1,6 +1,6 @@
 # ModMind 安卓独立试验版
 
-当前仅提供模组制作、整合包制作两个模式的基础工作流。应用标识 `dev.modmind`，Android 10+、ARM64；与早期 `dev.modmind.mobile.pilot` 并存。没有更改桌面入口，也没有删除旧版项目。
+当前仅提供模组制作、整合包制作两个模式的基础工作流。应用标识 `dev.modmind`，安装门槛为 Android 10 / API 29、ARM64；与早期 `dev.modmind.mobile.pilot` 并存。低版本系统的实际兼容验证范围见[安卓兼容记录](ANDROID-COMPATIBILITY.zh-CN.md)。没有更改桌面入口，也没有删除旧版项目。
 
 ## 当前界面
 
@@ -71,6 +71,6 @@ Codex CLI 的 [官方安装文档](https://developers.openai.com/codex/cli) 没�
 4. 下载官方 npm ARM64 包 `@openai/codex@0.154.0-linux-arm64`，将 tgz 路径交给 `node android-mobile/scripts/prepare-codex.mjs <归档>`；脚本按桌面 descriptor 校验 SHA-512 再提取，不接受未验证的镜像文件。
 5. 执行 `npm --prefix android-mobile run build`、`test`、`typecheck`、`apk`。APK 需要 JDK 17+、Android SDK/Build Tools 35；Windows 使用校验过的 ASCII 暂存目录。设置 ANDROID_SDK_ROOT / MODMIND_ANDROID_TOOLS 可覆盖本次机器的默认工具路径。
 
-输出 `android/app/build/outputs/apk/debug/app-debug.apk`。构建后逐个核对 APK 内 86 个 ELF、脚本 ZIP、页面资源和许可，避免构建过程剥离或替换工具。设备、授权、截图和临时项目放在忽略的 test-results/state 中，不提交令牌或账号数据。
+默认输出 `android/app/build/outputs/apk/release/app-release.apk` 与根仓库 `release/ModMind-Mobile-<版本>-arm64.apk`；`-Variant debug` 生成调试包，`-Variant both` 生成两种包。打包对各变体执行完整 lint，API 兼容错误阻断构建，报告保存在 `android/app/build/reports/`。构建后逐个核对 APK 内 86 个 ELF、脚本 ZIP、页面资源和许可，避免构建过程剥离或替换工具。设备、授权、截图和临时项目放在忽略的 test-results/state 中，不提交令牌或账号数据。
 
 实际通过和仍未验证的范围见 [VERIFICATION.md](VERIFICATION.md)。早期依赖 Termux 的结果保存在 VERIFICATION-pilot-1.md，不能代替独立版验收。

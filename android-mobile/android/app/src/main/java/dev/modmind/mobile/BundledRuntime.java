@@ -60,7 +60,8 @@ final class BundledRuntime {
         JSONObject links = metadata.getJSONObject("dataLinks");
         for (Iterator<String> keys = links.keys(); keys.hasNext();) {
             String relative = keys.next(), destination = links.getString(relative);
-            replaceLink(inside(prefix, relative), destination.equals("/system/bin/sh") ? Path.of(destination) : inside(prefix, destination).toPath());
+            // Path.of requires Android 14; bootstrap runs on system ART, before the bundled JDK.
+            replaceLink(inside(prefix, relative), destination.equals("/system/bin/sh") ? new File(destination).toPath() : inside(prefix, destination).toPath());
         }
         new File(prefix, "tmp").mkdirs(); new File(files, "home").mkdirs();
         File openssl = new File(prefix, "openssl.cnf");

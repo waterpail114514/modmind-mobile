@@ -6,7 +6,7 @@ android {
         applicationId 'dev.modmind'
         minSdk 29
         targetSdk 35
-        versionCode 8
+        versionCode 9
         versionName '1.0.0-preview.1'
         ndk { abiFilters 'arm64-v8a' }
     }
@@ -15,6 +15,7 @@ android {
     // Release APKs disable WebView inspection and Android debugging; store distribution is separate.
     buildTypes { release { signingConfig signingConfigs.debug; debuggable false; minifyEnabled false } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError true; fatal 'NewApi', 'InlinedApi' }
     packaging { jniLibs { useLegacyPackaging = true; keepDebugSymbols += ['**/*.so'] } }
 }
 dependencies { implementation 'androidx.webkit:webkit:1.13.0' }
