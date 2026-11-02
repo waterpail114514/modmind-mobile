@@ -1,0 +1,17 @@
+{
+  "appId": "dev.modmind",
+  "abi": "arm64-v8a",
+  "sourceArchiveSha256": "4569e8b55c4b98e0b2c889e3d2a5ea755d485060059247500dd20406429f1eeb",
+  "node": "24.22.2",
+  "java": "21.0.13",
+  "bash": "5.2.37",
+  "pathAdapterCompiler": "Termux clang 21.1.8-3",
+  "codex": "0.154.0",
+  "codexDescriptor": "../src/main/codexRuntimeDescriptors.json",
+  "sources": [
+    "https://github.com/termux/termux-packages/tree/master/packages/nodejs-lts",
+    "https://github.com/termux/termux-packages/tree/master/packages/openjdk-21",
+    "https://github.com/termux/termux-packages/tree/master/packages/bash",
+    "https://github.com/openai/codex"
+  ]
+}

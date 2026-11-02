@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.gradle/
+android/.gradle/
+android/local.properties
+android/app/build/
+android/app/src/main/assets/
+android/app/src/main/jniLibs/
+android/app/src/main/res/drawable/modmind.png
+android/gradlew
+android/gradlew.bat
+android/gradle/wrapper/gradle-wrapper.jar
+state/
+test-results/

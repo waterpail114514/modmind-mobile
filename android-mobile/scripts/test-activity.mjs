@@ -1,0 +1,56 @@
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import assert from 'node:assert/strict'
+import {createRequire} from 'node:module'
+import {pathToFileURL} from 'node:url'
+const root=path.resolve(import.meta.dirname,'..'),require=createRequire(path.resolve(root,'../package.json')),folder=path.join(root,'test-results/activity')
+await fs.mkdir(folder,{recursive:true})
+await require('esbuild').build({stdin:{contents:"export {MobileAgentEvents} from './backend/agentEvents';export {MobileOutputBuffer} from './backend/outputBuffer';export {mobileTimeline,mergeMobileEvents} from './src/mobileTimeline'",resolveDir:root},outfile:path.join(folder,'logic.mjs'),bundle:true,platform:'node',format:'esm'})
+const {MobileAgentEvents,MobileOutputBuffer,mobileTimeline,mergeMobileEvents}=await import(pathToFileURL(path.join(folder,'logic.mjs')).href)
+const checked=[],pass=name=>{checked.push(name);console.log('PASS '+name)}
+const records=[],output=async(kind,content,extra={})=>{records.push({eventId:'event-'+records.length,sequence:records.length+1,turnId:'turn-1',time:new Date().toISOString(),kind:'output',payload:{kind,content,time:new Date().toISOString(),turnId:'turn-1',...extra}})}
+const mapper=new MobileAgentEvents(output,'turn-1')
+const item=async(type,item,metadata)=>mapper.item({type,item},metadata)
+await item('item.started',{id:'r1',type:'reasoning',text:''});await item('item.updated',{id:'r1',type:'reasoning',text:'先看'});await item('item.completed',{id:'r1',type:'reasoning',text:'先看项目'})
+await item('item.completed',{id:'m1',type:'agent_message',phase:'commentary',text:'先读取文件。'})
+const read={id:'t1',type:'mcp_tool_call',server:'modmind',tool:'modmind_mobile_query',arguments:{operation:'read',path:'README.md'},status:'in_progress'}
+await item('item.started',read,{callId:'t1',operation:'read',status:'in_progress'})
+await item('item.completed',{...read,status:'completed',result:{content:[{type:'text',text:'{}'}]}},{callId:'t1',operation:'read',status:'completed'})
+await item('item.completed',{id:'m2',type:'agent_message',text:'最终正文。'});await mapper.complete()
+let timeline=mobileTimeline(mergeMobileEvents(records,records),false)
+assert.equal(timeline.filter(v=>v.kind==='reasoning').length,1);assert.deepEqual(timeline.find(v=>v.kind==='reasoning').reasoning.summary,['先看项目'])
+assert.equal(timeline.filter(v=>v.activity).length,1);assert.equal(timeline.find(v=>v.activity).activity.status,'completed')
+assert.equal(timeline.filter(v=>v.kind==='answer').length,1);assert.ok(timeline.some(v=>v.kind==='response'&&v.content==='先读取文件。'))
+pass('SDK fallback shares indexed reasoning, deduplicated activity and commentary/final replay')
+const started=records.slice(0,records.findIndex(r=>r.payload.activity?.status==='completed'))
+const live=mobileTimeline(started,true);assert.ok(live.some(v=>v.activity?.status==='running'));assert.ok(live.some(v=>v.status==='running'))
+const interrupted=mobileTimeline(started,false)
+assert.ok(interrupted.every(v=>v.status!=='running'));assert.ok(interrupted.filter(v=>v.activity).every(v=>v.activity.status==='interrupted'))
+pass('Restored unfinished records settle as interrupted, never as successful')
+assert.equal(mobileTimeline([{eventId:'user',kind:'user',sequence:1,time:new Date().toISOString(),turnId:'old',payload:{content:'旧手机消息'}}],false)[0].content,'旧手机消息')
+pass('Legacy user messages remain readable and live replay keeps running tools active')
+const streaming=[{eventId:'begin',kind:'output',sequence:1,time:new Date().toISOString(),turnId:'live',payload:{kind:'stream-start',content:'',itemId:'a'}},{eventId:'delta',kind:'output',sequence:2,time:new Date().toISOString(),turnId:'live',payload:{kind:'delta',content:'实时正文',itemId:'a'}}]
+assert.equal(mobileTimeline(streaming,true).find(v=>v.kind==='response').content,'实时正文')
+pass('Live replay flushes streamed answer text without falsely ending its activity')
+const before=records.length
+await item('item.completed',{id:'async-build',type:'mcp_tool_call',server:'modmind',tool:'modmind_mobile_task',arguments:{operation:'build'},status:'completed',result:{content:[{type:'text',text:JSON.stringify({id:'task-id',status:'running'})}]}},{callId:'async-build',operation:'build',status:'completed',taskId:'task-id'})
+assert.equal(records[before].payload.activity.title,'提交构建请求');assert.equal(records[before].payload.activity.status,'completed');assert.equal(records[before].payload.activity.kind,'tool')
+pass('A background task receipt reports submission; its result card owns actual build completion')
+const writes=[],aborts=[],buffer=new MobileOutputBuffer(async(kind,text,extra)=>writes.push({kind,text,extra}),e=>aborts.push(e),10)
+for(let i=0;i<50;i++)await buffer.output('delta','字',{itemId:'a'})
+await buffer.output('response','字'.repeat(50),{itemId:'a'})
+assert.equal(writes.length,2);assert.equal(writes[0].text,'字'.repeat(50))
+await buffer.output('reasoning','概要',{itemId:'r',reasoning:{phase:'delta',channel:'summary',index:0}})
+await buffer.output('reasoning','正文',{itemId:'r',reasoning:{phase:'delta',channel:'text',index:0}});await buffer.flush()
+assert.equal(writes.at(-2).extra.reasoning.channel,'summary');assert.equal(writes.at(-1).text,'正文');assert.equal(aborts.length,0)
+pass('Streaming batches preserve text, item boundaries and separate reasoning channels')
+const capped=new MobileOutputBuffer(async()=>{},e=>aborts.push(e),1)
+await capped.output('tool','first');await assert.rejects(capped.output('tool','second'),/容量限制/);assert.equal(aborts.length,1)
+pass('Phone event budget aborts the producer and preserves already persisted output')
+const native=JSON.parse(await fs.readFile(path.join(folder,'events.json'),'utf8'))
+timeline=mobileTimeline(native.events,false)
+assert.equal(timeline.filter(v=>v.activity).length,4);assert.equal(timeline.filter(v=>v.kind==='answer').length,1)
+assert.equal(timeline.filter(v=>v.kind==='reasoning').length,5);assert.ok(timeline.filter(v=>v.kind==='reasoning').every(v=>v.reasoning.text.join('').includes('手机实际返回的思考正文')))
+assert.ok(!JSON.stringify(timeline).includes('PRIVATE_ENCRYPTED_FIXTURE_MUST_NOT_APPEAR'))
+pass('Real Android native event fixture replays all reasoning and tool updates without duplicate final answer or encrypted data')
+await fs.writeFile(path.join(folder,'logic-tests.json'),JSON.stringify({checked},null,2))

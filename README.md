@@ -1,3 +1,5 @@
+> 当前为 **codex/mobile 安卓分支**。安卓开发、打包和验证请先阅读 [Android 分支说明](README.mobile.zh-CN.md)；下文桌面资料保留为共享代码背景。
+
 <div align="center">
 
 <img src="resources/readme-logo.png" alt="ModMind" width="820" />
