@@ -1,10 +1,10 @@
 # ModMind Android
 
-安卓开发分支：codex/mobile。工作目录：E:/waterpail/桌面/新建文件夹/modmind-mobile。当前目录是同一Git仓库的独立worktree，与桌面共用提交历史。
+安卓独立仓库：[modmind-mobile](https://github.com/waterpail114514/modmind-mobile)，默认分支 `main`。由原 `codex/mobile` 分支迁移，保留提交历史。
 
 应用显示名为 **ModMind**，当前版本 **1.0.0-preview.1**，本次旧安卓修复的 Android versionCode 为9；安装ID仍为dev.modmind，沿用原签名以支持覆盖试验版和保留数据。发布包关闭Android调试与WebView调试。这是直接分发的预览签名方案，尚未配置商店上架签名。
 
-当前安装包：[ModMind-Mobile-1.0.0-preview.1-arm64.apk](release/ModMind-Mobile-1.0.0-preview.1-arm64.apk)，配套.sha256文件位于同目录。release目录不入Git。
+当前安装包：[ModMind-Mobile-1.0.0-preview.1-arm64.apk](https://github.com/waterpail114514/modmind-mobile/releases/download/1.0.0-preview.1/ModMind-Mobile-1.0.0-preview.1-arm64.apk)，配套.sha256文件位于同目录。release目录不入Git。
 
 ## 开发与打包
 
